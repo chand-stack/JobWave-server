@@ -5,7 +5,10 @@ const app = express()
 const cors = require('cors');
 const port = process.env.PORT || 5000
 
-app.use(cors())
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}))
 app.use(express.json())
 
 
@@ -27,8 +30,27 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
+
+
+    const jobCollection = client.db("jobsDB").collection("jobCollection")
+
+
+    app.post("/api/v1/job-add", async (req,res)=>{
+        const job = req.body
+        console.log(job);
+        const result = await jobCollection.insertOne(job)
+        res.send(result)
+    })
+
+
+
+
+
+
+
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
