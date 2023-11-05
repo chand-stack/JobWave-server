@@ -42,6 +42,18 @@ async function run() {
         res.send(result)
     })
 
+    app.get("/api/v1/all-job", async (req,res)=>{
+        let query = {}
+        // console.log(req.query.category);
+        if(req?.query?.category){
+            query = {category: req?.query?.category}
+        }
+        console.log(query);
+        const cursor = jobCollection.find(query)
+        const result = await cursor.toArray()
+        res.send(result)
+    })
+
 
 
 
