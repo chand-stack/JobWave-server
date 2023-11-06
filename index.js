@@ -74,10 +74,8 @@ async function run() {
 
 
     app.delete("/api/v1/user/delete-job/:id", async (req,res)=>{
-        const id = req.params.id 
-        console.log(id);
+        const id = req.params.id
         const result = await jobCollection.deleteOne({_id: new ObjectId(id)})
-
         res.send(result)
         console.log(result);
     })
@@ -90,20 +88,53 @@ async function run() {
         res.send(filter)
     })
 
-    app.put("/api/v1/view-job/:id", async(req,res)=>{
-        const id = req.params.id
-        const count = req.body
-        const option = {upsert:true}
-        const filter = jobCollection.findOne({_id : new ObjectId(id)})
-        const updateDoc = {
-            $set:{
-                applicants: toString(count.applicantCount) 
-            }
+
+    app.patch("/api/v1/view-job/update/:id", async (req, res) => {
+        const id = req.params.id;
+        const newDetail = req.body;
+        try {
+          const filter = await jobCollection.findOne({ _id: new ObjectId(id) });
+          if (!filter) {
+            return res.status(404).send({ error: "Job not found" });
+          }
+          const option = { upsert: true };
+          const updateJob = {
+            $set: {
+              title: newDetail.title,
+              photo: newDetail.photo,
+              userName: newDetail.userName,
+              category: newDetail.category,
+              salary: newDetail.salary,
+              postingDate: newDetail.postingDate,
+              deadline: newDetail.deadline,
+              applicants: newDetail.applicants,
+              email: newDetail.email,
+              description: newDetail.description,
+            },
+          };
+          const result = await jobCollection.updateOne(filter, updateJob, option);
+          res.send(result);
+        } catch (error) {
+          console.error("Error updating job:", error);
+          res.status(500).send({ error: "Internal server error" });
         }
-         const result = await jobCollection.updateOne(filter,updateDoc,option)
-        console.log(count.applicantCount);
-        res.send(result)
-    })
+      });
+      
+
+    // app.put("/api/v1/view-job/:id", async(req,res)=>{
+    //     const id = req.params.id
+    //     const count = req.body
+    //     const option = {upsert:true}
+    //     const filter = jobCollection.findOne({_id : new ObjectId(id)})
+    //     const updateDoc = {
+    //         $set:{
+    //             applicants: toString(count.applicantCount) 
+    //         }
+    //     }
+    //      const result = await jobCollection.updateOne(filter,updateDoc,option)
+    //     console.log(count.applicantCount);
+    //     res.send(result)
+    // })
 
     app.post("/api/v1/apply-job", async (req,res)=>{
         const job = req.body
