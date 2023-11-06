@@ -1,6 +1,6 @@
 const express = require('express');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const cors = require('cors');
 const port = process.env.PORT || 5000
@@ -12,9 +12,7 @@ app.use(cors({
 app.use(express.json())
 
 
-
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@learning2023.svtmaib.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-wlwgtvd-shard-00-00.svtmaib.mongodb.net:27017,ac-wlwgtvd-shard-00-01.svtmaib.mongodb.net:27017,ac-wlwgtvd-shard-00-02.svtmaib.mongodb.net:27017/?ssl=true&replicaSet=atlas-7847a9-shard-0&authSource=admin&retryWrites=true&w=majority`
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -33,6 +31,7 @@ async function run() {
 
 
     const jobCollection = client.db("jobsDB").collection("jobCollection")
+    const appliedCollection = client.db("jobsDB").collection("appliedJobCollection")
 
 
     app.post("/api/v1/job-add", async (req,res)=>{
@@ -48,9 +47,68 @@ async function run() {
         if(req?.query?.category){
             query = {category: req?.query?.category}
         }
+        // if(req?.query?.email){
+        //     query = {email: req?.query?.email}
+        // }
         console.log(query);
         const cursor = jobCollection.find(query)
         const result = await cursor.toArray()
+        res.send(result)
+    })
+
+
+
+    app.get("/api/v1/my-job", async (req,res)=>{
+        let query = {}
+        
+        if(req?.query?.email){
+            query = {email: req?.query?.email}
+        }
+        console.log(query);
+        const cursor = jobCollection.find(query)
+        const result = await cursor.toArray()
+        res.send(result)
+    })
+
+
+
+
+    app.delete("/api/v1/user/delete-job/:id", async (req,res)=>{
+        const id = req.params.id 
+        console.log(id);
+        const result = await jobCollection.deleteOne({_id: new ObjectId(id)})
+
+        res.send(result)
+        console.log(result);
+    })
+    
+
+    app.get("/api/v1/view-job/:id", async(req,res)=>{
+        const id = req.params.id
+        const filter = await jobCollection.findOne({_id : new ObjectId(id)})
+        // console.log(filter);
+        res.send(filter)
+    })
+
+    app.put("/api/v1/view-job/:id", async(req,res)=>{
+        const id = req.params.id
+        const count = req.body
+        const option = {upsert:true}
+        const filter = jobCollection.findOne({_id : new ObjectId(id)})
+        const updateDoc = {
+            $set:{
+                applicants: toString(count.applicantCount) 
+            }
+        }
+         const result = await jobCollection.updateOne(filter,updateDoc,option)
+        console.log(count.applicantCount);
+        res.send(result)
+    })
+
+    app.post("/api/v1/apply-job", async (req,res)=>{
+        const job = req.body
+        // console.log(job)
+        const result = await appliedCollection.insertOne(job)
         res.send(result)
     })
 
