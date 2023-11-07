@@ -164,11 +164,14 @@ async function run() {
         res.send(result)
     })
 
-    app.get("/api/v1/apply-job", async (req,res)=>{
+    app.get("/api/v1/apply-job", verifyToken, async (req,res)=>{
 
         let query = {}
         let category = {}
         
+        if(req?.user?.email !== req?.query?.email){
+          return res.status(403).send({message: 'Forbidden Access'})
+        }
         
         if(req?.query?.email){
             query = {email: req?.query?.email}
