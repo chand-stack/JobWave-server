@@ -1,10 +1,10 @@
 const express = require('express');
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const app = express()
 const cookieParser = require('cookie-parser')
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const app = express()
 const port = process.env.PORT || 5000
 
 app.use(cors({
@@ -15,6 +15,21 @@ app.use(express.json())
 app.use(cookieParser())
 
 
+
+const verifyToken =  (req,res,next) =>{
+     const token = req?.cookies?.token
+     
+     if(!token){
+      return res.status(401).send({message: 'Unauthorized Access'})
+     }
+     jwt.verify(token,process.env.ACCESS_SECRET_TOKEN, (err,decoded)=>{
+      if(err){
+        return res.status(401).send({message: 'Unauthorized Access'})
+      }
+        req.user = decoded
+        next()
+     })
+}
 
 const uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-wlwgtvd-shard-00-00.svtmaib.mongodb.net:27017,ac-wlwgtvd-shard-00-01.svtmaib.mongodb.net:27017,ac-wlwgtvd-shard-00-02.svtmaib.mongodb.net:27017/?ssl=true&replicaSet=atlas-7847a9-shard-0&authSource=admin&retryWrites=true&w=majority`
 
@@ -38,6 +53,16 @@ async function run() {
     const appliedCollection = client.db("jobsDB").collection("appliedJobCollection")
 
 
+    app.post("/api/v1/jwt", async (req,res)=>{
+      const user = req.body
+      const token = jwt.sign(user,process.env.ACCESS_SECRET_TOKEN, {expiresIn:"1h"})
+      res.cookie("token",token,{
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production"? true:false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      }).send({message:true})
+    })
+
     app.post("/api/v1/job-add", async (req,res)=>{
         const job = req.body
         console.log(job);
@@ -47,13 +72,9 @@ async function run() {
 
     app.get("/api/v1/all-job", async (req,res)=>{
         let query = {}
-        // console.log(req.query.category);
         if(req?.query?.category){
             query = {category: req?.query?.category}
         }
-        // if(req?.query?.email){
-        //     query = {email: req?.query?.email}
-        // }
         console.log(query);
         const cursor = jobCollection.find(query)
         const result = await cursor.toArray()
@@ -61,9 +82,12 @@ async function run() {
     })
 
 
-    app.get("/api/v1/my-job", async (req,res)=>{
+    app.get("/api/v1/my-job",verifyToken, async (req,res)=>{
         let query = {}
-        
+
+        if(req?.user?.email !== req?.query?.email){
+          return res.status(403).send({message: 'Forbidden Access'})
+        }
         if(req?.query?.email){
             query = {email: req?.query?.email}
         }
