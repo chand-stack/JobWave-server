@@ -8,7 +8,7 @@ const app = express()
 const port = process.env.PORT || 5000
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173','https://uifry-d1f45.web.app','https://uifry-d1f45.firebaseapp.com'],
     credentials: true
 }))
 app.use(express.json())
@@ -65,7 +65,6 @@ async function run() {
 
     app.post("/api/v1/job-add", async (req,res)=>{
         const job = req.body
-        console.log(job);
         const result = await jobCollection.insertOne(job)
         res.send(result)
     })
@@ -75,7 +74,6 @@ async function run() {
         if(req?.query?.category){
             query = {category: req?.query?.category}
         }
-        console.log(query);
         const cursor = jobCollection.find(query)
         const result = await cursor.toArray()
         res.send(result)
